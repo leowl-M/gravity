@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhysicReels Creator - Minimal Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    .has-canvas #placeholder-text { display: none; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #404040; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #525252; }
+    
+    /* Custom inputs minimal styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      margin-top: -5px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 2px;
+      cursor: pointer;
+      background: #404040;
+    }
+  </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen w-full bg-neutral-950 text-neutral-300 font-sans overflow-hidden">
+
+  <div class="w-full md:w-80 bg-neutral-900 p-6 flex flex-col overflow-y-auto border-r border-neutral-800 z-10">
+    
+    <div class="pb-6 border-b border-neutral-800 mb-6">
+      <h1 class="text-lg font-medium text-white tracking-tight">PhysicReels</h1>
+      <p class="text-xs text-neutral-500 mt-1">Workspace</p>
+    </div>
+
+    <div class="flex flex-col gap-4 mb-6 pb-6 border-b border-neutral-800">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-medium text-neutral-400 flex items-center gap-2">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i> Ambiente
+        </h2>
+        <input type="color" id="bgColor" value="#0a0a0a" class="w-5 h-5 rounded cursor-pointer bg-neutral-800 border-0 p-0">
+      </div>
+      
+      <label class="flex items-center justify-center w-full h-10 transition bg-neutral-800 border border-neutral-700 border-dashed rounded cursor-pointer hover:bg-neutral-800 hover:border-neutral-500">
+        <span class="text-xs text-neutral-400 flex items-center gap-2"><i data-lucide="image" class="w-3.5 h-3.5"></i> Immagine Centrale</span>
+        <input type="file" id="centerImage" class="hidden" accept="image/png, image/jpeg, image/webp">
+      </label>
+
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <label class="block text-[10px] text-neutral-500 mb-1" id="scaleLabel">Scala (1.0x)</label>
+          <input type="range" id="centerScale" min="0.2" max="3" step="0.1" value="1" class="w-full">
+        </div>
+        <div class="flex-1">
+          <label class="block text-[10px] text-neutral-500 mb-1" id="rotationLabel">Rotazione (0°)</label>
+          <input type="range" id="centerRotation" min="0" max="360" step="1" value="0" class="w-full">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4 mb-6 pb-6 border-b border-neutral-800">
+      <h2 class="text-xs font-medium text-neutral-400 flex items-center gap-2">
+        <i data-lucide="zap" class="w-3.5 h-3.5"></i> Generatore
+      </h2>
+      
+      <label class="flex items-center justify-center w-full h-10 transition bg-neutral-800 border border-neutral-700 border-dashed rounded cursor-pointer hover:bg-neutral-800 hover:border-neutral-500">
+        <span class="text-xs text-neutral-400 flex items-center gap-2"><i data-lucide="layers" class="w-3.5 h-3.5"></i> Elementi Cadenti</span>
+        <input type="file" id="fallingImages" multiple class="hidden" accept="image/png, image/jpeg, image/webp">
+      </label>
+
+      <div id="previewContainer" class="flex gap-2 overflow-x-auto pb-1 hidden"></div>
+
+      <div>
+        <label class="block text-[10px] text-neutral-500 mb-1">Stile Simulazione</label>
+        <select id="physicsEffect" class="w-full bg-neutral-800 border border-neutral-700 rounded p-2 text-xs text-neutral-200 outline-none cursor-pointer focus:border-neutral-500">
+          <option value="normal">Pioggia Classica</option>
+          <option value="cannons">Cannoni (Incrocio)</option>
+          <option value="fluid">Sabbia / Fluido</option>
+          <option value="popcorn">Spawning Pop-Corn</option>
+          <option value="bouncy">Gomma Rimbalzante</option>
+          <option value="heavy">Piombo (Gravità Pesante)</option>
+          <option value="space">Spazio (Fluttuanti)</option>
+          <option value="windRight">Vento (Destra)</option>
+          <option value="windLeft">Vento (Sinistra)</option>
+          <option value="explosion">Esplosione</option>
+          <option value="leaves">Foglie al Vento</option>
+          <option value="vortex">Vortice Centrale</option>
+          <option value="magnetic">Magnete Centrale</option>
+        </select>
+      </div>
+
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <label class="block text-[10px] text-neutral-500 mb-1" id="amountLabel">Quantità: 15</label>
+          <input type="range" id="itemAmount" min="1" max="150" step="1" value="15" class="w-full">
+        </div>
+        <div class="flex-1">
+          <label class="block text-[10px] text-neutral-500 mb-1" id="sizeLabel">Misura: 60px</label>
+          <input type="range" id="itemSize" min="10" max="250" step="5" value="60" class="w-full">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4 mb-6 pb-6 border-b border-neutral-800">
+      <h2 class="text-xs font-medium text-neutral-400 flex items-center gap-2">
+        <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Proprietà
+      </h2>
+
+      <div>
+        <label class="block text-[10px] text-neutral-500 mb-1">Forma Oggetti</label>
+        <select id="shapeType" class="w-full bg-neutral-800 border border-neutral-700 rounded p-1.5 text-xs text-neutral-200 outline-none cursor-pointer focus:border-neutral-500">
+          <option value="circle">Cerchi</option>
+          <option value="rectangle">Rettangoli</option>
+          <option value="mixed">Misto</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-2 mt-2">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="modChaos" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Caos Dimensionale (10% Giganti)</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="modExplosive" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Collisioni Dinamiche</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="modMouse" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Campo di Forza Mouse</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="isLooping" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Modalità Loop</span>
+        </label>
+        <hr class="border-neutral-800 my-1">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="modDraw" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Disegna Muri Ostacolo</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="modHideObstacles" class="w-3 h-3 accent-neutral-200 rounded cursor-pointer">
+          <span class="text-[11px] text-neutral-400">Nascondi Ostacoli Creati</span>
+        </label>
+        <button id="clearObstaclesBtn" class="text-[10px] text-neutral-500 hover:text-white text-left mt-1 underline transition-colors w-fit">
+          Cancella tutti i muri
+        </button>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <button id="spawnBtn" class="flex-1 bg-white text-black hover:bg-neutral-200 py-2 rounded text-xs font-medium transition flex items-center justify-center gap-2">
+        <i data-lucide="play" class="w-3.5 h-3.5"></i> Spawna
+      </button>
+      <button id="clearBtn" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 p-2 rounded transition flex items-center justify-center" title="Pulisci Oggetti Cadenti">
+        <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <div class="mt-auto">
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-[10px] text-neutral-500">FPS Export</label>
+        <select id="exportFps" class="bg-transparent border border-neutral-700 rounded px-1 py-0.5 text-[10px] text-neutral-300 outline-none cursor-pointer">
+          <option value="12">12 fps</option>
+          <option value="24">24 fps</option>
+          <option value="30" selected>30 fps</option>
+          <option value="60">60 fps</option>
+        </select>
+      </div>
+      <button id="recordBtn" class="w-full py-2.5 rounded text-xs font-medium flex items-center justify-center gap-2 transition bg-white text-black hover:bg-neutral-200">
+        <i data-lucide="camera" class="w-3.5 h-3.5"></i> <span id="recordText">Esporta Sequenza</span>
+      </button>
+      <p id="recordStatus" class="text-center text-[10px] text-neutral-500 mt-2 hidden"></p>
+    </div>
+
+  </div>
+
+  <div id="sceneContainer" class="flex-1 relative flex items-center justify-center bg-neutral-950 overflow-hidden">
+    <div id="canvasContainer" class="absolute ring-1 ring-neutral-800" style="width: 1080px; height: 1920px; overflow: hidden; background-color: #0a0a0a; transform-origin: center center;">
+      <div id="placeholder-text" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-20 text-center z-10 text-neutral-600">
+        <p class="text-2xl font-light mb-2">1080 x 1920</p>
+        <p class="text-sm">Aggiungi elementi per iniziare.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const CANVAS_WIDTH = 1080;
+    const CANVAS_HEIGHT = 1920;
+    const COLLISION = { WALL: 0x0001, CENTER: 0x0002, ITEM: 0x0004 };
+
+    let fallingImagesUrls = [];
+    let centerImageUrl = null;
+    let isRecording = false, isProcessingZip = false, isLooping = false;
+    let recordedFrames = [];
+    let engine, render, runner, centralBody, ground, ceiling, leftWall, rightWall, mouse, mouseConstraint;
+    let timeTick = 0; 
+    let lastCaptureTime = 0; 
+
+    // Stato dei modificatori
+    let modChaos = false, modExplosive = false, modMouse = false;
+    
+    // Stato Disegno Ostacoli
+    let isDrawingMode = false;
+    let hideObstacles = false;
+    let drawnObstacles = [];
+    let drawStartPt = null;
+    let previewObstacle = null;
+
+    const canvasContainer = document.getElementById('canvasContainer');
+    const sceneContainer = document.getElementById('sceneContainer');
+
+    function initPhysics() {
+      engine = Matter.Engine.create();
+      setGravity('normal'); 
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = CANVAS_WIDTH; canvas.height = CANVAS_HEIGHT;
+      canvasContainer.appendChild(canvas);
+      canvasContainer.classList.add('has-canvas');
+
+      render = Matter.Render.create({
+        canvas: canvas, engine: engine,
+        options: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, background: 'transparent', wireframes: false }
+      });
+
+      const wOpt = { isStatic: true, render: { visible: false }, collisionFilter: { category: COLLISION.WALL, mask: 0xFFFF } };
+      ground = Matter.Bodies.rectangle(CANVAS_WIDTH/2, CANVAS_HEIGHT + 100, CANVAS_WIDTH * 3, 200, wOpt);
+      ceiling = Matter.Bodies.rectangle(CANVAS_WIDTH/2, -500, CANVAS_WIDTH * 3, 200, wOpt);
+      leftWall = Matter.Bodies.rectangle(-100, CANVAS_HEIGHT/2, 200, CANVAS_HEIGHT * 3, wOpt);
+      rightWall = Matter.Bodies.rectangle(CANVAS_WIDTH + 100, CANVAS_HEIGHT/2, 200, CANVAS_HEIGHT * 3, wOpt);
+      
+      Matter.Composite.add(engine.world, [ground, ceiling, leftWall, rightWall]);
+
+      mouse = Matter.Mouse.create(canvas);
+      mouseConstraint = Matter.MouseConstraint.create(engine, { 
+        mouse: mouse, 
+        constraint: { stiffness: 0.2, render: { visible: false } } 
+      });
+      Matter.Composite.add(engine.world, mouseConstraint);
+      render.mouse = mouse;
+
+      // -----------------------------------------
+      // LOGICA DISEGNO OSTACOLI
+      // -----------------------------------------
+      Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
+        if (!isDrawingMode) return;
+        drawStartPt = { x: mouse.position.x, y: mouse.position.y };
+      });
+
+      Matter.Events.on(mouseConstraint, 'mousemove', function(event) {
+        if (!isDrawingMode || !drawStartPt) return;
+        
+        if (previewObstacle) {
+          Matter.Composite.remove(engine.world, previewObstacle);
+        }
+        
+        const currentPt = { x: mouse.position.x, y: mouse.position.y };
+        const dx = currentPt.x - drawStartPt.x;
+        const dy = currentPt.y - drawStartPt.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 10) return; // Evita di creare muri troppo piccoli
+
+        const centerX = drawStartPt.x + dx / 2;
+        const centerY = drawStartPt.y + dy / 2;
+        const angle = Math.atan2(dy, dx);
+
+        previewObstacle = Matter.Bodies.rectangle(centerX, centerY, dist, 25, {
+          isStatic: true,
+          angle: angle,
+          render: { fillStyle: '#ffffff', opacity: 0.4 }, // Bianco semitrasparente minimale
+          collisionFilter: { category: COLLISION.WALL, mask: 0xFFFF }
+        });
+        Matter.Composite.add(engine.world, previewObstacle);
+      });
+
+      Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+        if (!isDrawingMode || !drawStartPt) return;
+        if (previewObstacle) {
+          previewObstacle.render.opacity = hideObstacles ? 0 : 1;
+          previewObstacle.render.visible = !hideObstacles;
+          drawnObstacles.push(previewObstacle);
+          previewObstacle = null;
+        }
+        drawStartPt = null;
+      });
+
+      // MODIFICATORE: Collisioni Esplosive
+      Matter.Events.on(engine, 'collisionStart', (event) => {
+        if (!modExplosive) return;
+        event.pairs.forEach((pair) => {
+          const bodyA = pair.bodyA;
+          const bodyB = pair.bodyB;
+          const relVelX = bodyA.velocity.x - bodyB.velocity.x;
+          const relVelY = bodyA.velocity.y - bodyB.velocity.y;
+          const speedSq = relVelX * relVelX + relVelY * relVelY;
+          
+          if (speedSq > 150 && !bodyA.isStatic && !bodyB.isStatic) {
+            const forceMagnitude = 0.05;
+            Matter.Body.applyForce(bodyA, bodyA.position, { x: relVelX * forceMagnitude, y: relVelY * forceMagnitude });
+            Matter.Body.applyForce(bodyB, bodyB.position, { x: -relVelX * forceMagnitude, y: -relVelY * forceMagnitude });
+          }
+        });
+      });
+
+      // LOOP AGGIORNAMENTO FISICA
+      Matter.Events.on(engine, 'beforeUpdate', () => {
+        timeTick += 0.05;
+        const effect = document.getElementById('physicsEffect').value;
+        const bodies = Matter.Composite.allBodies(engine.world).filter(b => !b.isStatic);
+
+        const mouseX = mouse.position.x;
+        const mouseY = mouse.position.y;
+
+        bodies.forEach(body => {
+          // MODIFICATORE: Mouse Repulsivo
+          if (modMouse && mouseX && mouseY) {
+            const dx = body.position.x - mouseX;
+            const dy = body.position.y - mouseY;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < 40000) { 
+              const force = 50 / Math.max(distSq, 100); 
+              Matter.Body.applyForce(body, body.position, { x: dx * force * body.mass * 0.001, y: dy * force * body.mass * 0.001 });
+            }
+          }
+
+          // EFFETTI VETTORIALI
+          if (effect === 'leaves') {
+            Matter.Body.applyForce(body, body.position, { x: Math.sin(timeTick + body.id) * 0.002 * body.mass, y: 0 });
+          } else if (effect === 'vortex') {
+            const dx = (CANVAS_WIDTH / 2) - body.position.x;
+            const dy = (CANVAS_HEIGHT / 2) - body.position.y;
+            Matter.Body.applyForce(body, body.position, { x: -dy * 0.00003 * body.mass, y: dx * 0.00003 * body.mass });
+            Matter.Body.applyForce(body, body.position, { x: dx * 0.000005 * body.mass, y: dy * 0.000005 * body.mass }); 
+          } else if (effect === 'magnetic') {
+            const dx = (CANVAS_WIDTH / 2) - body.position.x;
+            const dy = (CANVAS_HEIGHT / 2) - body.position.y;
+            Matter.Body.applyForce(body, body.position, { x: dx * 0.00003 * body.mass, y: dy * 0.00003 * body.mass });
+          } else if (effect === 'popcorn') {
+            if (body.position.y > CANVAS_HEIGHT - 250 && Math.abs(body.velocity.y) < 2 && Math.random() < 0.02) {
+              Matter.Body.setVelocity(body, { x: (Math.random() - 0.5) * 15, y: -15 - Math.random() * 20 });
+              Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.6); 
+            }
+          }
+
+          // GESTIONE MODALITÀ LOOP
+          if (isLooping) {
+            const outBottom = body.position.y > CANVAS_HEIGHT + 300;
+            const outTop = body.position.y < -600;
+            const outSides = body.position.x < -300 || body.position.x > CANVAS_WIDTH + 300;
+
+            if (outBottom || outTop || outSides) {
+              let nx = (CANVAS_WIDTH / 2) + (Math.random() - 0.5) * 800;
+              let ny = -200 - (Math.random() * 200);
+              let vx = (Math.random() - 0.5) * 4;
+              let vy = 0;
+
+              if (effect === 'explosion' || effect === 'popcorn') {
+                ny = CANVAS_HEIGHT + 100; vy = -20 - Math.random() * 15;
+              } else if (effect === 'windRight') {
+                nx = -100; ny = Math.random() * CANVAS_HEIGHT; vx = 10;
+              } else if (effect === 'windLeft') {
+                nx = CANVAS_WIDTH + 100; ny = Math.random() * CANVAS_HEIGHT; vx = -10;
+              }
+
+              Matter.Body.setPosition(body, { x: nx, y: ny });
+              Matter.Body.setVelocity(body, { x: vx, y: vy });
+            }
+          }
+        });
+      });
+
+      // LOGICA DI REGISTRAZIONE CON CONTROLLO FRAMERATE
+      Matter.Events.on(render, 'afterRender', () => {
+        if (isRecording) {
+          const now = performance.now();
+          const targetFps = parseInt(document.getElementById('exportFps').value);
+          const intervalMs = 1000 / targetFps;
+
+          if (now - lastCaptureTime >= intervalMs) {
+            recordedFrames.push(canvas.toDataURL('image/jpeg', 0.8));
+            lastCaptureTime = now;
+            document.getElementById('recordStatus').innerText = `Registrazione... Frame: ${recordedFrames.length}`;
+          }
+        }
+      });
+
+      Matter.Render.run(render);
+      runner = Matter.Runner.create();
+      Matter.Runner.run(runner, engine);
+
+      window.addEventListener("resize", () => {
+        const scaleY = (sceneContainer.clientHeight - 40) / CANVAS_HEIGHT;
+        const scaleX = (sceneContainer.clientWidth - 40) / CANVAS_WIDTH;
+        const scale = Math.min(scaleX, scaleY);
+        canvasContainer.style.transform = `scale(${scale})`;
+        Matter.Mouse.setScale(mouse, { x: 1/scale, y: 1/scale });
+      });
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    function setGravity(effect) {
+      if (!engine) return;
+      if (effect === 'windRight') engine.gravity = { x: 1.5, y: 0.8 };
+      else if (effect === 'windLeft') engine.gravity = { x: -1.5, y: 0.8 };
+      else if (effect === 'heavy') engine.gravity = { x: 0, y: 3.5 };
+      else if (effect === 'space') engine.gravity = { x: 0, y: 0.1 };
+      else if (effect === 'vortex' || effect === 'magnetic') engine.gravity = { x: 0, y: 0 };
+      else if (effect === 'leaves') engine.gravity = { x: 0, y: 0.6 };
+      else engine.gravity = { x: 0, y: 1.5 }; 
+    }
+
+    // LISTENER OSTACOLI
+    document.getElementById('modDraw').addEventListener('change', (e) => {
+      isDrawingMode = e.target.checked;
+      mouseConstraint.collisionFilter.mask = isDrawingMode ? 0x0000 : 0xFFFFFFFF;
+      canvasContainer.style.cursor = isDrawingMode ? 'crosshair' : 'default';
+    });
+    
+    document.getElementById('modHideObstacles').addEventListener('change', (e) => {
+      hideObstacles = e.target.checked;
+      drawnObstacles.forEach(obs => {
+        obs.render.visible = !hideObstacles;
+      });
+    });
+
+    document.getElementById('clearObstaclesBtn').addEventListener('click', () => {
+      drawnObstacles.forEach(obs => Matter.Composite.remove(engine.world, obs));
+      drawnObstacles = [];
+    });
+
+    // LISTENER MODIFICATORI E SETTINGS
+    document.getElementById('physicsEffect').addEventListener('change', (e) => setGravity(e.target.value));
+    document.getElementById('modChaos').addEventListener('change', (e) => modChaos = e.target.checked);
+    document.getElementById('modExplosive').addEventListener('change', (e) => modExplosive = e.target.checked);
+    document.getElementById('modMouse').addEventListener('change', (e) => modMouse = e.target.checked);
+    document.getElementById('isLooping').addEventListener('change', (e) => {
+      isLooping = e.target.checked; ground.isSensor = ceiling.isSensor = isLooping; 
+    });
+
+    function updateCenterBody() {
+      if (centralBody) Matter.Composite.remove(engine.world, centralBody);
+      const scale = parseFloat(document.getElementById('centerScale').value);
+      const rotation = parseInt(document.getElementById('centerRotation').value);
+      
+      if (centerImageUrl) {
+        const img = new Image();
+        img.onload = () => {
+          const baseW = 400; const baseH = baseW * (img.naturalHeight / img.naturalWidth);
+          centralBody = Matter.Bodies.rectangle(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, baseW * scale, baseH * scale, {
+            isStatic: true, angle: rotation * (Math.PI / 180),
+            collisionFilter: { category: COLLISION.CENTER, mask: COLLISION.WALL | COLLISION.ITEM },
+            render: { sprite: { texture: centerImageUrl, xScale: (baseW*scale)/img.naturalWidth, yScale: (baseH*scale)/img.naturalHeight } }
+          });
+          Matter.Composite.add(engine.world, centralBody);
+        };
+        img.src = centerImageUrl;
+      }
+    }
+
+    document.getElementById('bgColor').addEventListener('input', (e) => canvasContainer.style.backgroundColor = e.target.value);
+    document.getElementById('centerImage').addEventListener('change', (e) => { if (e.target.files[0]) { centerImageUrl = URL.createObjectURL(e.target.files[0]); updateCenterBody(); }});
+    document.getElementById('centerScale').addEventListener('input', (e) => { document.getElementById('scaleLabel').innerText = `Scala (${parseFloat(e.target.value).toFixed(1)}x)`; updateCenterBody(); });
+    document.getElementById('centerRotation').addEventListener('input', (e) => { document.getElementById('rotationLabel').innerText = `Rotazione (${e.target.value}°)`; updateCenterBody(); });
+
+    document.getElementById('fallingImages').addEventListener('change', (e) => {
+      const preview = document.getElementById('previewContainer'); preview.classList.remove('hidden');
+      Array.from(e.target.files).forEach(file => {
+        const url = URL.createObjectURL(file); fallingImagesUrls.push(url);
+        const img = document.createElement('img'); img.src = url; img.className = "h-8 w-8 object-cover bg-neutral-800 rounded border border-neutral-700 shrink-0"; preview.appendChild(img);
+      });
+    });
+
+    document.getElementById('itemAmount').addEventListener('input', (e) => document.getElementById('amountLabel').innerText = `Quantità: ${e.target.value}`);
+    document.getElementById('itemSize').addEventListener('input', (e) => document.getElementById('sizeLabel').innerText = `Misura: ${e.target.value}px`);
+
+    document.getElementById('spawnBtn').addEventListener('click', () => {
+      if (fallingImagesUrls.length === 0) return alert("Carica un'immagine per gli elementi cadenti!");
+      
+      const effect = document.getElementById('physicsEffect').value;
+      const shape = document.getElementById('shapeType').value;
+      
+      let amount = parseInt(document.getElementById('itemAmount').value);
+      let baseSize = parseInt(document.getElementById('itemSize').value);
+      if (effect === 'fluid') { amount = Math.max(amount, 50); baseSize = 15; }
+
+      const btn = document.getElementById('spawnBtn');
+      btn.disabled = true; btn.style.opacity = "0.5";
+
+      let spawnedCount = 0;
+      let spawnDelay = effect === 'explosion' ? 20 : (effect === 'popcorn' ? 30 : (effect === 'cannons' ? 100 : 150));
+      if (effect === 'fluid') spawnDelay = 10; 
+
+      const interval = setInterval(() => {
+        if (spawnedCount >= amount) { clearInterval(interval); btn.disabled = false; btn.style.opacity = "1"; return; }
+
+        const imgUrl = fallingImagesUrls[spawnedCount % fallingImagesUrls.length];
+        
+        let radius = baseSize + Math.random() * (baseSize / 3);
+        if (modChaos && Math.random() < 0.1 && effect !== 'fluid') radius *= 3.5; 
+
+        let startX = (CANVAS_WIDTH / 2) + (Math.random() - 0.5) * 800;
+        let startY = -200 - (Math.random() * 200);
+        let velX = (Math.random() - 0.5) * 4;
+        let velY = 0;
+        
+        let physOptions = { restitution: 0.5, friction: 0.5, density: 0.04, frictionAir: 0.01, collisionFilter: { category: COLLISION.ITEM, mask: COLLISION.WALL | COLLISION.CENTER | COLLISION.ITEM } };
+
+        if (effect === 'bouncy') { physOptions.restitution = 1.1; physOptions.frictionAir = 0.001; }
+        if (effect === 'heavy') { physOptions.density = 0.5; physOptions.restitution = 0.1; }
+        if (effect === 'space') { physOptions.frictionAir = 0.08; physOptions.restitution = 0.9; }
+        if (effect === 'leaves') { physOptions.frictionAir = 0.05; }
+        if (effect === 'windRight') { startX = -100; startY = Math.random() * CANVAS_HEIGHT; velX = 15; }
+        if (effect === 'windLeft') { startX = CANVAS_WIDTH + 100; startY = Math.random() * CANVAS_HEIGHT; velX = -15; }
+        if (effect === 'explosion') { startY = CANVAS_HEIGHT + 100; velY = -30 - Math.random() * 15; velX = (Math.random() - 0.5) * 25; }
+        if (effect === 'fluid') { physOptions.restitution = 0.1; physOptions.friction = 0.001; physOptions.density = 0.1; }
+        if (effect === 'popcorn') {
+          startX = 150 + Math.random() * (CANVAS_WIDTH - 300); startY = CANVAS_HEIGHT - 50; 
+          velY = -35 - Math.random() * 20; velX = (Math.random() - 0.5) * 15; physOptions.restitution = 0.8;
+        }
+        if (effect === 'cannons') {
+          startY = 200 + Math.random() * 200;
+          if (spawnedCount % 2 === 0) { startX = -50; velX = 25 + Math.random() * 10; velY = -5; } 
+          else { startX = CANVAS_WIDTH + 50; velX = -25 - Math.random() * 10; velY = -5; }
+        }
+
+        let isRect = shape === 'rectangle' || (shape === 'mixed' && Math.random() > 0.5);
+        let body;
+        
+        const renderOpts = { sprite: { texture: imgUrl, xScale: 1, yScale: 1 } };
+
+        if (isRect) {
+          body = Matter.Bodies.rectangle(startX, startY, radius * 1.8, radius * 1.8, { ...physOptions, render: renderOpts });
+        } else {
+          body = Matter.Bodies.circle(startX, startY, radius, { ...physOptions, render: renderOpts });
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = Math.max(img.naturalWidth, img.naturalHeight);
+          const scale = isRect ? ((radius * 1.8) / maxDim) : ((radius * 2.2) / maxDim);
+          body.render.sprite.xScale = scale; body.render.sprite.yScale = scale;
+        };
+        img.src = imgUrl;
+
+        Matter.Body.setVelocity(body, { x: velX, y: velY });
+        Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.4);
+
+        Matter.Composite.add(engine.world, body);
+        spawnedCount++;
+      }, spawnDelay); 
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      Matter.Composite.remove(engine.world, Matter.Composite.allBodies(engine.world).filter(b => !b.isStatic));
+    });
+
+    // REC CONTROLLO EVENTO
+    const recBtn = document.getElementById('recordBtn');
+    const recText = document.getElementById('recordText');
+    const recStat = document.getElementById('recordStatus');
+
+    recBtn.addEventListener('click', () => {
+      if (isProcessingZip) return;
+      
+      if (isRecording) {
+        isRecording = false; 
+        isProcessingZip = true;
+        
+        recBtn.className = "w-full py-2.5 rounded text-xs font-medium flex items-center justify-center gap-2 transition bg-neutral-800 text-neutral-400 cursor-wait";
+        recText.innerText = "Elaborazione..."; 
+        recStat.innerText = `Compressione di ${recordedFrames.length} immagini. Attendi...`; 
+        recStat.className = "text-center text-[10px] text-neutral-400 mt-2 block";
+
+        setTimeout(() => {
+          const zip = new JSZip(); const imgF = zip.folder("sequence");
+          recordedFrames.forEach((d, i) => imgF.file(`frame_${String(i+1).padStart(4,'0')}.jpg`, d.split(',')[1], {base64: true}));
+          zip.generateAsync({type:"blob"}).then(c => {
+            const a = document.createElement("a"); a.href = URL.createObjectURL(c); a.download = `physic_reels_${Date.now()}.zip`; a.click();
+            isProcessingZip = false; recordedFrames = [];
+            recBtn.className = "w-full py-2.5 rounded text-xs font-medium flex items-center justify-center gap-2 transition bg-white text-black hover:bg-neutral-200";
+            recText.innerText = "Esporta Sequenza"; recStat.className = "hidden";
+          });
+        }, 100);
+      } else {
+        recordedFrames = []; 
+        isRecording = true;
+        lastCaptureTime = performance.now(); 
+        
+        recBtn.className = "w-full py-2.5 rounded text-xs font-medium flex items-center justify-center gap-2 transition bg-neutral-800 text-white animate-pulse";
+        recText.innerText = "Ferma ed Esporta"; 
+        recStat.innerText = "Avvio registrazione..."; 
+        recStat.className = "text-center text-[10px] text-white mt-2 block";
+      }
+    });
+
+    initPhysics();
+  </script>
+</body>
+</html>
