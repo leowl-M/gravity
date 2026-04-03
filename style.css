@@ -1,0 +1,55 @@
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+.has-canvas #placeholder-text { display: none; }
+
+/* Scrollbar personalizzata */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #404040; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #525252; }
+
+/* Stile per gli input range (slider) */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -5px;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px;
+  cursor: pointer;
+  background: #404040;
+}
+
+/* Stile per i rettangoli interattivi DOM */
+.dom-rect {
+  position: absolute;
+  resize: both;
+  overflow: hidden;
+  z-index: 20;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  transition: opacity 0.2s;
+}
+.dom-rect:hover { border-color: rgba(255, 255, 255, 0.8); }
+.dom-rect::-webkit-scrollbar { width: 14px; height: 14px; }
+.dom-rect::-webkit-scrollbar-corner { background: rgba(255,255,255,0.7); cursor: se-resize; border-radius: 2px; }
+
+/* Maniglia di trascinamento dei rettangoli */
+.dom-rect-drag {
+  width: 100%; height: 100%; cursor: move;
+  display: flex; align-items: center; justify-content: center;
+}
+.dom-rect-drag::after {
+  content: '☩'; color: rgba(255,255,255,0.4); font-size: 20px; pointer-events: none;
+}
