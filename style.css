@@ -42,8 +42,8 @@ input[type=range]::-webkit-slider-runnable-track {
   transition: opacity 0.2s;
 }
 .dom-rect:hover { border-color: rgba(255, 255, 255, 0.8); }
-.dom-rect::-webkit-scrollbar { width: 14px; height: 14px; }
-.dom-rect::-webkit-scrollbar-corner { background: rgba(255,255,255,0.7); cursor: se-resize; border-radius: 2px; }
+.dom-rect::-webkit-scrollbar { width: 18px; height: 18px; }
+.dom-rect::-webkit-scrollbar-corner { background: rgba(255,255,255,0.8); cursor: se-resize; border-radius: 3px; }
 
 /* Maniglia di trascinamento dei rettangoli */
 .dom-rect-drag {
@@ -51,5 +51,5 @@ input[type=range]::-webkit-slider-runnable-track {
   display: flex; align-items: center; justify-content: center;
 }
 .dom-rect-drag::after {
-  content: '☩'; color: rgba(255,255,255,0.4); font-size: 20px; pointer-events: none;
+  content: '☩'; color: rgba(255,255,255,0.5); font-size: 30px; pointer-events: none;
 }
