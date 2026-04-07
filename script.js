@@ -307,7 +307,7 @@ function createDOMObstacle(x, y, w, h) {
 
   const delBtn = document.createElement('button');
   delBtn.innerHTML = '×';
-  delBtn.className = 'absolute top-0 right-1 text-white text-xs font-bold pointer-events-auto hover:text-red-400 z-10';
+  delBtn.className = 'absolute top-0 right-1 text-white text-2xl leading-none font-bold pointer-events-auto hover:text-red-400 z-10';
   delBtn.onclick = () => {
     el.remove(); Matter.Composite.remove(engine.world, domObstacles[id].body); delete domObstacles[id];
   };
